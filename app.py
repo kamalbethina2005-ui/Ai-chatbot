@@ -8,6 +8,14 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'medical_chatbot.db')
 
+# Auto-initialize database if it does not exist or is empty
+if not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) == 0:
+    from init_db import init_db
+    try:
+        init_db()
+    except Exception as e:
+        print(f"Failed to auto-initialize database: {e}")
+
 # ─────────────────────────────────────────────────────────────
 # PREDEFINED RESPONSES FOR COMMON HEALTH CONDITIONS
 # ─────────────────────────────────────────────────────────────
@@ -186,17 +194,21 @@ def get_db_connection():
 
 
 def get_doctors_by_disease(disease):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    query = """
-        SELECT name, specialty, contact 
-        FROM doctors 
-        WHERE LOWER(disease_tag) LIKE ?
-    """
-    cur.execute(query, ('%' + disease.lower() + '%',))
-    doctors = cur.fetchall()
-    conn.close()
-    return doctors
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        query = """
+            SELECT name, specialty, contact 
+            FROM doctors 
+            WHERE LOWER(disease_tag) LIKE ?
+        """
+        cur.execute(query, ('%' + disease.lower() + '%',))
+        doctors = cur.fetchall()
+        conn.close()
+        return doctors
+    except Exception as e:
+        print(f"Error fetching doctors by disease '{disease}': {e}")
+        return []
 
 
 def match_condition(user_input):
@@ -294,14 +306,18 @@ def chat():
 
 @app.route('/doctors')
 def doctors():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT name, specialty, contact FROM doctors")
-    doctors = cur.fetchall()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT name, specialty, contact FROM doctors")
+        doctors = cur.fetchall()
+        conn.close()
 
-    doctors_list = [dict(doc) for doc in doctors]
-    return jsonify({'doctors': doctors_list})
+        doctors_list = [dict(doc) for doc in doctors]
+        return jsonify({'doctors': doctors_list})
+    except Exception as e:
+        print(f"Error fetching all doctors: {e}")
+        return jsonify({'doctors': [], 'error': str(e)})
 
 
 if __name__ == '__main__':

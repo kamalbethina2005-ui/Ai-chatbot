@@ -323,14 +323,21 @@
         }
 
         function speakText(htmlText) {
-            // Strip HTML tags before speaking
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = htmlText;
-            const plainText = tempDiv.textContent || tempDiv.innerText || "";
-            if (plainText.trim()) {
-                const utterance = new SpeechSynthesisUtterance(plainText);
-                utterance.lang = "en-US";
-                speechSynthesis.speak(utterance);
+            try {
+                if (typeof SpeechSynthesisUtterance === 'undefined' || typeof speechSynthesis === 'undefined') {
+                    return;
+                }
+                // Strip HTML tags before speaking
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = htmlText;
+                const plainText = tempDiv.textContent || tempDiv.innerText || "";
+                if (plainText.trim()) {
+                    const utterance = new SpeechSynthesisUtterance(plainText);
+                    utterance.lang = "en-US";
+                    speechSynthesis.speak(utterance);
+                }
+            } catch (e) {
+                console.error("Speech synthesis failed:", e);
             }
         }
 
